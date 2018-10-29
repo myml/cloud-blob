@@ -1,6 +1,6 @@
 package upyunBlob
 
-var RespErrorCode = map[string]string{
+var respErrorCode = map[string]string{
 	"":         "unknown",
 	"40000001": "need save-key",
 	"40000002": "need body",

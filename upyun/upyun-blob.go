@@ -15,14 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Auth struct {
-	Token   string
-	Expire  int64
-	Prefix  string
-	Postfix string
-}
-
-type UpYunBucket struct {
+type upyunBucket struct {
 	Bucket   string
 	Host     string
 	Scheme   string
@@ -31,12 +24,12 @@ type UpYunBucket struct {
 	location *time.Location
 }
 
-func OpenUpYunBucket(bucket string, auth share.Authorizer) *UpYunBucket {
+func OpenUpyunBucket(bucket string, auth share.Authorizer) *upyunBucket {
 	location, err := time.LoadLocation("GMT")
 	if err != nil {
 		panic(err)
 	}
-	b := &UpYunBucket{
+	b := &upyunBucket{
 		Scheme:   "http",
 		Host:     "v0.api.upyun.com",
 		Bucket:   bucket,
@@ -48,20 +41,20 @@ func OpenUpYunBucket(bucket string, auth share.Authorizer) *UpYunBucket {
 }
 
 // url [scheme]://[host]/[bucket]/[path]
-func (b *UpYunBucket) url(path string) string {
+func (b *upyunBucket) url(path string) string {
 	return fmt.Sprintf("%s://%s/%s/%s", b.Scheme, b.Host, b.Bucket, path)
 }
 
 // short url /[bucket]/[path]
-func (b *UpYunBucket) shortUrl(path string) string {
+func (b *upyunBucket) shortUrl(path string) string {
 	return fmt.Sprintf("/%s/%s", b.Bucket, path)
 }
 
 // 判断API调用是否失败,如失败,返回错误
-func (b *UpYunBucket) hasError(resp *http.Response) error {
+func (b *upyunBucket) hasError(resp *http.Response) error {
 	if resp.StatusCode != 200 {
 		code := resp.Header.Get("X-Error-Code")
-		err := errors.Errorf("%s: %s", code, RespErrorCode[code])
+		err := errors.Errorf("%s: %s", code, respErrorCode[code])
 		// not found
 		if code == "40400001" {
 			return &share.BucketError{ErrorValue: err, ErrorKind: driver.NotFound}
@@ -71,17 +64,6 @@ func (b *UpYunBucket) hasError(resp *http.Response) error {
 	return nil
 }
 
-//// 使用密码计算签名
-//func (b *UpYunBucket) MakeSignature(method string, path string, date, contentMD5 string) string {
-//	message := strings.Join([]string{method, b.shortUrl(path), date}, "&")
-//	if contentMD5 != "" {
-//		message += "&" + contentMD5
-//	}
-//	h := hmac.New(sha1.New, []byte(b.Password))
-//	h.Write([]byte(message))
-//	sum := h.Sum(nil)
-//	return base64.StdEncoding.EncodeToString(sum)
-//}
 type requestOptions struct {
 	Method      string
 	Path        string
@@ -91,7 +73,7 @@ type requestOptions struct {
 }
 
 // 操作请求
-func (b *UpYunBucket) NewRequest(opts *requestOptions) (*http.Request, error) {
+func (b *upyunBucket) NewRequest(opts *requestOptions) (*http.Request, error) {
 	url := fmt.Sprintf("%s://%s/%s/%s", b.Scheme, b.Host, b.Bucket, opts.Path)
 	req, err := http.NewRequest(opts.Method, url, opts.Body)
 	if err != nil {
@@ -107,13 +89,13 @@ func (b *UpYunBucket) NewRequest(opts *requestOptions) (*http.Request, error) {
 	return req, nil
 }
 
-func (b *UpYunBucket) As(i interface{}) bool {
-	_, ok := i.(UpYunBucket)
+func (b *upyunBucket) As(i interface{}) bool {
+	_, ok := i.(upyunBucket)
 	return ok
 }
 
 // 获取文件属性
-func (b *UpYunBucket) Attributes(ctx context.Context, path string) (driver.Attributes, error) {
+func (b *upyunBucket) Attributes(ctx context.Context, path string) (driver.Attributes, error) {
 	attr := driver.Attributes{}
 	req, err := b.NewRequest(&requestOptions{
 		Method: "HEAD",
@@ -157,7 +139,8 @@ func (b *UpYunBucket) Attributes(ctx context.Context, path string) (driver.Attri
 }
 
 // 获取文件列表
-func (b *UpYunBucket) ListPaged(
+// 又拍云是目录结构,Prefix要是目录名
+func (b *upyunBucket) ListPaged(
 	ctx context.Context,
 	opt *driver.ListOptions) (*driver.ListPage, error) {
 	const MaxPageSize = 1000
@@ -226,7 +209,7 @@ func (b *UpYunBucket) ListPaged(
 }
 
 // 创建文件读取流,可指定偏移和长度
-func (b *UpYunBucket) NewRangeReader(ctx context.Context,
+func (b *upyunBucket) NewRangeReader(ctx context.Context,
 	path string, offset, length int64) (driver.Reader, error) {
 	req, err := b.NewRequest(&requestOptions{
 		Method: "GET",
@@ -254,11 +237,11 @@ func (b *UpYunBucket) NewRangeReader(ctx context.Context,
 	if err != nil {
 		return nil, errors.Wrap(err, "Parse ModTime")
 	}
-	return &Reader{attr: attr, ReadCloser: resp.Body}, nil
+	return &reader{attr: attr, ReadCloser: resp.Body}, nil
 }
 
 // 创建写入流,覆盖写入,可设置metadata,content type
-func (b *UpYunBucket) NewTypedWriter(ctx context.Context,
+func (b *upyunBucket) NewTypedWriter(ctx context.Context,
 	path string, contentType string, opt *driver.WriterOptions) (driver.Writer, error) {
 	r, w := io.Pipe()
 	req, err := b.NewRequest(&requestOptions{
@@ -299,7 +282,7 @@ func (b *UpYunBucket) NewTypedWriter(ctx context.Context,
 }
 
 // 删除文件
-func (b *UpYunBucket) Delete(ctx context.Context, path string) error {
+func (b *upyunBucket) Delete(ctx context.Context, path string) error {
 	req, err := b.NewRequest(&requestOptions{
 		Method: "DELETE",
 		Path:   path,
@@ -315,7 +298,7 @@ func (b *UpYunBucket) Delete(ctx context.Context, path string) error {
 }
 
 // 生成文件临时下载网址
-func (b *UpYunBucket) SignedURL(ctx context.Context,
+func (b *upyunBucket) SignedURL(ctx context.Context,
 	path string, opts *driver.SignedURLOptions) (string, error) {
 	return "", &share.BucketError{
 		ErrorKind:  driver.NotImplemented,

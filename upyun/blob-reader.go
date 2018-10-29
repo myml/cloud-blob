@@ -6,15 +6,15 @@ import (
 	"github.com/google/go-cloud/blob/driver"
 )
 
-type Reader struct {
+type reader struct {
 	io.ReadCloser
 	attr driver.ReaderAttributes
 }
 
-func (r *Reader) As(i interface{}) bool {
-	_, ok := i.(Reader)
+func (r *reader) As(i interface{}) bool {
+	_, ok := i.(reader)
 	return ok
 }
-func (r *Reader) Attributes() driver.ReaderAttributes {
+func (r *reader) Attributes() driver.ReaderAttributes {
 	return r.attr
 }
