@@ -25,7 +25,7 @@ func TestNewUpYunBucket(t *testing.T) {
 		t.Error("plase set your environment variable")
 	}
 	auth := MakeAuth(Operator, Password)
-	b = blob.NewBucket(OpenUpYunBucket(Bucket, auth))
+	b = blob.NewBucket(OpenUpyunBucket(Bucket, auth))
 }
 
 func TestWriter(t *testing.T) {
@@ -55,7 +55,6 @@ func TestList(t *testing.T) {
 		if obj == nil {
 			return
 		}
-
 	}
 }
 

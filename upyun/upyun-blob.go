@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -38,16 +39,6 @@ func OpenUpyunBucket(bucket string, auth share.Authorizer) *upyunBucket {
 		location: location,
 	}
 	return b
-}
-
-// url [scheme]://[host]/[bucket]/[path]
-func (b *upyunBucket) url(path string) string {
-	return fmt.Sprintf("%s://%s/%s/%s", b.Scheme, b.Host, b.Bucket, path)
-}
-
-// short url /[bucket]/[path]
-func (b *upyunBucket) shortUrl(path string) string {
-	return fmt.Sprintf("/%s/%s", b.Bucket, path)
 }
 
 // 判断API调用是否失败,如失败,返回错误
@@ -153,9 +144,10 @@ func (b *upyunBucket) ListPaged(
 			PageSize: MaxPageSize,
 		}
 	}
+	path, prefix := filepath.Split(opt.Prefix)
 	req, err := b.NewRequest(&requestOptions{
 		Method: "GET",
-		Path:   opt.Prefix,
+		Path:   path,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "NewRequest")
@@ -186,7 +178,10 @@ func (b *upyunBucket) ListPaged(
 		if len(record) != 4 {
 			return nil, errors.Wrap(errors.New("bad result"), "Parse List")
 		}
-		obj := driver.ListObject{Key: record[0]}
+		if !strings.HasPrefix(record[0], prefix) {
+			continue
+		}
+		obj := driver.ListObject{Key: path + record[0]}
 		obj.Size, err = strconv.ParseInt(record[2], 10, 64)
 		if err != nil {
 			return nil, errors.Wrap(err, "Parse file size")
