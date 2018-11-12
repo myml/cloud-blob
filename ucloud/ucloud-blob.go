@@ -40,6 +40,7 @@ type requestOptions struct {
 	Body        io.Reader
 	ContentType string
 	ContentMD5  string
+	ListPrefix  string
 	QueryParams map[string]interface{}
 }
 
@@ -86,7 +87,14 @@ func (b *ucloudBucket) NewRequest(opts *requestOptions) (*http.Request, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "NewRequest")
 	}
-	req.Header, err = b.Auth.Authorization(b.Bucket, opts.Method, opts.Path, opts.ContentType, opts.ContentMD5)
+	req.Header, err = b.Auth.Authorization(share.AuthOptions{
+		Bucket:      b.Bucket,
+		Method:      opts.Method,
+		Path:        opts.Path,
+		ContentType: opts.ContentType,
+		ContentMD5:  opts.ContentMD5,
+		ListPrefix:  opts.ListPrefix,
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "Authorization")
 	}
@@ -96,17 +104,19 @@ func (b *ucloudBucket) NewRequest(opts *requestOptions) (*http.Request, error) {
 // 获取文件列表
 func (b *ucloudBucket) ListPaged(ctx context.Context, opt *driver.ListOptions) (*driver.ListPage, error) {
 	query := map[string]interface{}{"list": nil}
+	reqOpt := requestOptions{
+		Method:      "GET",
+		QueryParams: query,
+	}
 	if opt != nil {
+		reqOpt.ListPrefix = opt.Prefix
 		query["prefix"] = opt.Prefix
 		query["marker"] = string(opt.PageToken)
 		if opt.PageSize > 0 {
 			query["limit"] = opt.PageSize
 		}
 	}
-	req, err := b.NewRequest(&requestOptions{
-		Method:      "GET",
-		QueryParams: query,
-	})
+	req, err := b.NewRequest(&reqOpt)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewRequest")
 	}
@@ -230,6 +240,9 @@ func (b *ucloudBucket) NewTypedWriter(ctx context.Context,
 		Path:        path,
 		Body:        r,
 		ContentType: contentType,
+	}
+	if opt != nil && len(opt.ContentMD5) > 0 {
+		opts.ContentMD5 = fmt.Sprintf("%x", opt.ContentMD5)
 	}
 	req, err := b.NewRequest(&opts)
 	if err != nil {

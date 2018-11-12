@@ -18,28 +18,27 @@ type upyunAuthorizer struct {
 	Password string
 }
 
-func (auth *upyunAuthorizer) Authorization(bucket, method, path, contentType, contentMD5 string) (http.Header, error) {
+func (auth *upyunAuthorizer) Authorization(opts share.AuthOptions) (http.Header, error) {
 	location, err := time.LoadLocation("GMT")
 	if err != nil {
 		panic(err)
 	}
 	date := time.Now().In(location).Format(http.TimeFormat)
-	message := strings.Join([]string{method, path, date}, "&")
-	if contentMD5 != "" {
-		message += "&" + contentMD5
+	message := strings.Join([]string{opts.Method, opts.Path, date}, "&")
+	if len(opts.ContentMD5) > 0 {
+		message += "&" + opts.ContentMD5
 	}
 	h := hmac.New(sha1.New, []byte(auth.Password))
 	h.Write([]byte(message))
 	sign := base64.StdEncoding.EncodeToString(h.Sum(nil))
-
 	header := http.Header{}
 	header.Set("Date", date)
 	header.Set("Authorization", fmt.Sprintf("UpYun %s:%s", auth.Operator, sign))
-	if contentType != "" {
-		header.Set("Content-Type", contentType)
+	if len(opts.ContentType) > 0 {
+		header.Set("Content-Type", opts.ContentType)
 	}
-	if contentMD5 != "" {
-		header.Set("Content-MD5", contentMD5)
+	if len(opts.ContentMD5) > 0 {
+		header.Set("Content-MD5", opts.ContentMD5)
 	}
 	return header, nil
 }

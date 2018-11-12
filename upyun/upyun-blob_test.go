@@ -49,7 +49,6 @@ func TestList(t *testing.T) {
 	for {
 		obj, err := page.Next(context.TODO())
 		if err != nil {
-			t.Error(err)
 			return
 		}
 		if obj == nil {

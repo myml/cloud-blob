@@ -3,5 +3,8 @@ package share
 import "net/http"
 
 type Authorizer interface {
-	Authorization(bucket, method, path, contentType, contentMD5 string) (http.Header, error)
+	Authorization(opts AuthOptions) (http.Header, error)
+}
+type AuthOptions struct {
+	Bucket, Method, Path, ContentType, ContentMD5, ListPrefix string
 }

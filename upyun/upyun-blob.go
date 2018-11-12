@@ -70,16 +70,20 @@ func (b *upyunBucket) NewRequest(opts *requestOptions) (*http.Request, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "NewRequest")
 	}
-	header, err := b.Auth.Authorization(b.Bucket,
-		opts.Method, fmt.Sprintf("/%s/%s", b.Bucket, opts.Path),
-		opts.ContentType, opts.ContentMD5)
+	header, err := b.Auth.Authorization(
+		share.AuthOptions{
+			Bucket:      b.Bucket,
+			Method:      opts.Method,
+			Path:        fmt.Sprintf("/%s/%s", b.Bucket, opts.Path),
+			ContentType: opts.ContentType,
+			ContentMD5:  opts.ContentMD5,
+		})
 	if err != nil {
 		return nil, errors.Wrap(err, "Authorization")
 	}
 	req.Header = header
 	return req, nil
 }
-
 func (b *upyunBucket) As(i interface{}) bool {
 	_, ok := i.(upyunBucket)
 	return ok
@@ -239,11 +243,15 @@ func (b *upyunBucket) NewRangeReader(ctx context.Context,
 func (b *upyunBucket) NewTypedWriter(ctx context.Context,
 	path string, contentType string, opt *driver.WriterOptions) (driver.Writer, error) {
 	r, w := io.Pipe()
-	req, err := b.NewRequest(&requestOptions{
+	opts := requestOptions{
 		Method: "PUT",
 		Path:   path,
 		Body:   r,
-	})
+	}
+	if opt != nil && len(opt.ContentMD5) > 0 {
+		opts.ContentMD5 = fmt.Sprintf("%x", opt.ContentMD5)
+	}
+	req, err := b.NewRequest(&opts)
 	if err != nil {
 		return nil, errors.Wrap(err, "NewTypedWriter")
 	}
