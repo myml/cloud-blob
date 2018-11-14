@@ -17,7 +17,7 @@ type ucloudAuthorizer struct {
 }
 
 func (auth *ucloudAuthorizer) Authorization(opts share.AuthOptions) (http.Header, error) {
-	date := time.Now().Format(http.TimeFormat)
+	date := time.Now().UTC().Format(http.TimeFormat)
 	argv := []string{opts.Method, opts.ContentMD5, opts.ContentType, date, fmt.Sprintf("/%s/%s", opts.Bucket, opts.Path)}
 	h := hmac.New(sha1.New, []byte(auth.privateKey))
 	fmt.Fprint(h, strings.Join(argv, "\n"))

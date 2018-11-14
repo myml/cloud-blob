@@ -19,11 +19,7 @@ type upyunAuthorizer struct {
 }
 
 func (auth *upyunAuthorizer) Authorization(opts share.AuthOptions) (http.Header, error) {
-	location, err := time.LoadLocation("GMT")
-	if err != nil {
-		panic(err)
-	}
-	date := time.Now().In(location).Format(http.TimeFormat)
+	date := time.Now().UTC().Format(http.TimeFormat)
 	message := strings.Join([]string{opts.Method, opts.Path, date}, "&")
 	if len(opts.ContentMD5) > 0 {
 		message += "&" + opts.ContentMD5

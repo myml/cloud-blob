@@ -276,7 +276,7 @@ func (b *upyunBucket) NewTypedWriter(ctx context.Context,
 		defer resp.Body.Close()
 		err = b.hasError(resp)
 		if err != nil {
-			errChan <- errors.Wrap(err, "Http")
+			errChan <- err
 			return
 		}
 		errChan <- nil

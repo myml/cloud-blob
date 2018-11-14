@@ -59,7 +59,7 @@ func (b *ucloudBucket) hasError(resp *http.Response) error {
 		if err != nil {
 			return errors.Wrap(err, "Parse RespError")
 		}
-		return errors.Errorf("%d: %s", respError.RetCode, respError.ErrMsg)
+		return errors.Errorf("API: %d: %s", respError.RetCode, respError.ErrMsg)
 	}
 	return nil
 }
@@ -126,7 +126,7 @@ func (b *ucloudBucket) ListPaged(ctx context.Context, opt *driver.ListOptions) (
 	}
 	err = b.hasError(resp)
 	if err != nil {
-		return nil, errors.Wrap(err, "API")
+		return nil, err
 	}
 	defer resp.Body.Close()
 	type Result struct {
@@ -176,7 +176,7 @@ func (b *ucloudBucket) Attributes(ctx context.Context, path string) (driver.Attr
 	defer resp.Body.Close()
 	err = b.hasError(resp)
 	if err != nil {
-		return attr, errors.Wrap(err, "API")
+		return attr, err
 	}
 	attr.ContentType = resp.Header.Get("Content-Type")
 	attr.Size = resp.ContentLength
@@ -209,7 +209,7 @@ func (b *ucloudBucket) NewRangeReader(ctx context.Context,
 	}
 	err = b.hasError(resp)
 	if err != nil {
-		return nil, errors.Wrap(err, "API")
+		return nil, err
 	}
 	if resp.StatusCode != 206 {
 		return nil, errors.New("Range no support")
@@ -256,7 +256,7 @@ func (b *ucloudBucket) NewTypedWriter(ctx context.Context,
 		}
 		err = b.hasError(resp)
 		if err != nil {
-			errChan <- errors.Wrap(err, "API")
+			errChan <- err
 			return
 		}
 		errChan <- nil
@@ -282,7 +282,7 @@ func (b *ucloudBucket) Delete(ctx context.Context, path string) error {
 	}
 	err = b.hasError(resp)
 	if err != nil {
-		return errors.Wrap(err, "API")
+		return err
 	}
 	return nil
 }
