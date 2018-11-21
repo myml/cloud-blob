@@ -48,7 +48,7 @@ func (b *upyunBucket) hasError(resp *http.Response) error {
 		err := errors.Errorf("%s: %s", code, respErrorCode[code])
 		// not found
 		if code == "40400001" {
-			return &share.BucketError{ErrorValue: err, ErrorKind: driver.NotFound}
+			return errors.Wrap(share.ErrorNoFound, "API")
 		}
 		return errors.Wrap(err, "API")
 	}
@@ -83,6 +83,12 @@ func (b *upyunBucket) NewRequest(opts *requestOptions) (*http.Request, error) {
 	}
 	req.Header = header
 	return req, nil
+}
+func (b *upyunBucket) IsNotExist(err error) bool {
+	return errors.Cause(err) == share.ErrorNoFound
+}
+func (b *upyunBucket) IsNotImplemented(err error) bool {
+	return errors.Cause(err) == share.ErrorNotImplemented
 }
 func (b *upyunBucket) As(i interface{}) bool {
 	_, ok := i.(upyunBucket)
@@ -303,8 +309,5 @@ func (b *upyunBucket) Delete(ctx context.Context, path string) error {
 // 生成文件临时下载网址
 func (b *upyunBucket) SignedURL(ctx context.Context,
 	path string, opts *driver.SignedURLOptions) (string, error) {
-	return "", &share.BucketError{
-		ErrorKind:  driver.NotImplemented,
-		ErrorValue: errors.New("NotImplemented"),
-	}
+	return "", share.ErrorNotImplemented
 }

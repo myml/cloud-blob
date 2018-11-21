@@ -51,18 +51,26 @@ func (b *ucloudBucket) hasError(resp *http.Response) error {
 		ErrMsg  string
 	}
 	if resp.StatusCode == 404 {
-		return &share.BucketError{ErrorValue: errors.New(resp.Status), ErrorKind: driver.NotFound}
-	}
-	if resp.StatusCode >= 400 {
+		return errors.Wrap(share.ErrorNoFound, "API")
+	} else if resp.StatusCode >= 400 {
 		var respError RespError
 		err := json.NewDecoder(resp.Body).Decode(&respError)
 		if err != nil {
 			return errors.Wrap(err, "Parse RespError")
 		}
-		return errors.Errorf("API: %d: %s", respError.RetCode, respError.ErrMsg)
+		err = errors.Errorf("%d: %s", respError.RetCode, respError.ErrMsg)
+		return errors.Wrap(err, "API")
 	}
 	return nil
 }
+
+func (b *ucloudBucket) IsNotExist(err error) bool {
+	return errors.Cause(err) == share.ErrorNoFound
+}
+func (b *ucloudBucket) IsNotImplemented(err error) bool {
+	return errors.Cause(err) == share.ErrorNotImplemented
+}
+
 func (b *ucloudBucket) As(i interface{}) bool {
 	_, ok := i.(ucloudBucket)
 	return ok
@@ -289,8 +297,5 @@ func (b *ucloudBucket) Delete(ctx context.Context, path string) error {
 
 // 不支持临时下载地址
 func (b *ucloudBucket) SignedURL(ctx context.Context, path string, opts *driver.SignedURLOptions) (string, error) {
-	return "", &share.BucketError{
-		ErrorKind:  driver.NotImplemented,
-		ErrorValue: errors.New("NotImplemented"),
-	}
+	return "", share.ErrorNotImplemented
 }

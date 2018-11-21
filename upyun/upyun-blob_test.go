@@ -2,6 +2,7 @@ package upyunBlob
 
 import (
 	"context"
+	"io"
 	"os"
 	"strconv"
 	"testing"
@@ -41,19 +42,20 @@ func TestWriter(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	page, err := b.List(context.TODO(), nil)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	page := b.List(nil)
 	for {
 		obj, err := page.Next(context.TODO())
 		if err != nil {
-			return
+			if err == io.EOF {
+				break
+			}
+			t.Error(err)
+			break
 		}
 		if obj == nil {
-			return
+			break
 		}
+		t.Log(obj)
 	}
 }
 
