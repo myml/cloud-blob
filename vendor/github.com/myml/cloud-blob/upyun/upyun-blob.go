@@ -162,9 +162,7 @@ func (b *upyunBucket) ListPaged(
 	if err != nil {
 		return nil, errors.Wrap(err, "NewRequest")
 	}
-	if len(opt.PageToken)>0{
-		req.Header.Set("x-list-iter", string(opt.PageToken))
-	}
+	req.Header.Set("x-list-iter", string(opt.PageToken))
 	req.Header.Set("x-list-limit", fmt.Sprint(opt.PageSize))
 	resp, err := b.Http.Do(req.WithContext(ctx))
 	if err != nil {
