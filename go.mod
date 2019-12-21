@@ -1,4 +1,4 @@
-module cloud-blob
+module github.com/myml/cloud-blob
 
 go 1.12
 
